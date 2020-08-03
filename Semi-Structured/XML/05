@@ -1,0 +1,64 @@
+-- set context 
+use role public;
+use database TEST_XML_DATA;
+use schema test;
+
+
+// Create a Snowflake table with a single variant column
+  create or replace table AdventureWorks (
+     xmldoc variant not null
+);
+
+
+create or replace stage xml_test;
+
+COPY INTO AdventureWorks
+FROM @xml_test/AdventureWorks
+FILE_FORMAT=(TYPE=XML) ON_ERROR='CONTINUE';
+
+
+SELECT * FROM AdventureWorks;
+
+
+TRUNCATE table AdventureWorks;  -- delete all the data
+
+COPY INTO AdventureWorks
+FROM @xml_test/AdventureWorks
+FILE_FORMAT=(type='xml' strip_outer_element=TRUE) ON_ERROR='CONTINUE'; 
+
+
+SELECT * FROM AdventureWorks;
+
+
+SELECT 
+  GET(Elements.value, '@')::string nodeType, count(*) 
+FROM 
+  AdventureWorks,
+  LATERAL FLATTEN(GET(XMLDOC, '$')) Elements
+group by nodeType;
+
+SELECT 
+  Elements.*
+FROM 
+  AdventureWorks,
+  LATERAL FLATTEN(GET(XMLDOC, '$')) Elements;
+
+
+SELECT 
+  GET(Orders.value, '@'),
+  Orders.*,
+  XMLGET(Orders.value, 'CustomerID'):"$"::string  CustomerID,
+  XMLGET(Orders.value, 'EmployeeID'):"$"::integer EmployeeID,
+  XMLGET(Orders.value, 'OrderDate'):"$"::date     OrderDate,
+  XMLGET(Orders.value, 'RequiredDate'):"$"::date  RequiredDate
+FROM 
+  AdventureWorks,
+  LATERAL FLATTEN(GET(XMLDOC, '$')) Orders ;
+-- WHERE 
+  -- GET(Orders.value, '@') = 'Order';
+  
+  
+  
+  
+  
+  

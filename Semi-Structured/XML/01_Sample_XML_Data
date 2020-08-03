@@ -136,6 +136,15 @@ from test.table_xml as t
 ,lateral flatten (parse_xml(t.CleansedResponseXML))  as f
 WHERE t.TRANSUNIONID = 124916;
 
+select
+    t.TRANSUNIONID
+    -- ,f.*
+    ,f.key
+    ,f.value
+    ,f.path
+from test.table_xml as t
+,lateral flatten (parse_xml(t.CleansedResponseXML), recursive => true)  as f
+WHERE t.TRANSUNIONID = 124916;
 
 
 select
@@ -145,7 +154,231 @@ select
 from test.table_xml as t
 ,lateral flatten (parse_xml(t.CleansedResponseXML), recursive => TRUE)  as f
 WHERE t.TRANSUNIONID = 124916
-AND "Type" not in ('OBJECT','ARRAY', 'VARIANT', 'XML');  -- get the parsed data 
+AND "Type" not in ('OBJECT','ARRAY', 'VARIANT', 'XML')  -- get the parsed data 
+AND ( KEY LIKE '$%' OR  KEY LIKE '@%');
+-- and f.value = 'rank';
+
+select
+       XMLGET( xmldata, 'dept_id' ):"$"::string AS dept_id
+     , XMLGET( xmldata, 'dept_name' ):"$"::string AS dept_name
+     , XMLGET( emp.value, 'emp_id' ):"$"::integer as emp_id
+     , XMLGET( emp.value, 'emp_fname' ):"$"::string as emp_fname
+     , XMLGET( emp.value, 'emp_lname' ):"$"::string as emp_lname
+     , XMLGET( emp.value, 'emp_title' ):"$"::string as emp_title
+     , XMLGET( emp.value, 'emp_ssn' ):"$"::string as emp_ssn
+from
+    dept_emp_addr
+    ,  lateral FLATTEN(dept_emp_addr.xmldata:"$") emp
+  where GET( emp.value, '@') = 'employee'
+  order by dept_id, emp_id ;
+
+
+SELECT 
+  GET(Elements.value, '@')::string nodeType
+FROM 
+  test.table_xml as t,
+  LATERAL FLATTEN(GET(t.CleansedResponseXML, '$')) Elements;
+
+
+
+
+
+select 
+*
+from test.table_xml
+    ,  lateral FLATTEN(parse_xml(table_xml.CLEANSEDRESPONSEXML):"$") emp
+WHERE TRANSUNIONID = 124916;
+
+
+select 
+f.*
+,GET(f.value, '@')::string nodetype 
+from test.table_xml as t
+    ,  lateral FLATTEN(parse_xml(t.CLEANSEDRESPONSEXML):"$") f
+WHERE t.TRANSUNIONID = 124916;    
+
+-- [3]['$'][1]['$'][1]['$'][5]['$'][2]['$'][25]['$'][1]     
+SELECT 
+ GET(f.value, '@')::string nodetype
+,GET(f.value, '$')::string nodetype_value
+-- ,f.value
+,f.PATH
+,RIGHT(f.PATH,3) 
+,f.*
+-- ,typeof(f.value) as "Type"
+-- ,typeof(f.value) as "Type"
+from test.table_xml as t
+    ,  lateral FLATTEN(to_array(parse_xml(t.CLEANSEDRESPONSEXML):"$"), recursive => true) f
+WHERE t.TRANSUNIONID = 124916
+--AND "Type" not in ('OBJECT','ARRAY', 'VARIANT', 'XML');
+AND left(nodetype_value, 1) NOT IN  ('[','<')
+AND NODETYPE IS NOT NULL
+and nodetype = 'algorithmID';
+--and "Type" not in ('OBJECT','ARRAY', 'VARIANT', 'XML');
+
+select 
+
+
+f.*
+,GET(f.value, '@')::string nodetype 
+,GET(f.value, '$')::string nodetype_value 
+,typeof(GET(f.value, '$')) as "Type"
+-- ,GET(f2.value, '@')::string nodetype 
+-- ,GET(f3.value, '@')::string nodetype 
+-- ,GET(f3.value, '$')::string nodetype 
+-- ,XMLGET(f3.value,'industryCode'):"$"::string transactionControl
+-- ,f3.*
+from test.table_xml as t
+    , lateral FLATTEN(GET(parse_xml(t.CLEANSEDRESPONSEXML),'$'), recursive => true) f
+    -- , lateral FLATTEN(GET(parse_xml(f.value),'$')) f2
+    -- , lateral FLATTEN(GET(parse_xml(f2.value),'$')) f3
+WHERE t.TRANSUNIONID = 124916;
+--AND "Type" not in ('OBJECT','ARRAY', 'VARIANT', 'XML')  -- get the parsed data 
+--and NODETYPE IS NOT NULL;
+
+select 
+-- f.*
+-- ,GET(f.value, '@')::string nodetype 
+-- ,GET(f.value, '$')::string nodetype_value 
+-- ,GET(f2.value, '@')::string nodetype 
+GET(f3.value, '@')::string nodetype 
+,GET(f3.value, '$')::string nodetype 
+-- ,XMLGET(f3.value,'industryCode'):"$"::string transactionControl
+-- ,f3.*
+from test.table_xml as t
+    , lateral FLATTEN(GET(parse_xml(t.CLEANSEDRESPONSEXML),'$'), recursive => true) f
+    , lateral FLATTEN(GET(f.value,'$')) f2
+    , lateral FLATTEN(GET(f2.value,'$')) f3
+WHERE t.TRANSUNIONID = 124916;
+--AND "Type" not in ('OBJECT','ARRAY', 'VARIANT', 'XML')  -- get the parsed data 
+--and NODETYPE IS NOT NULL;
+
+
+
+select x('path')
+from a ;
+
+-----------------------------------------------------------------------------------------------------------
+
+
+-- full table data 
+select * from test.table_xml
+where transunionid = '124692';
+
+
+SELECT 
+  Elements.* 
+FROM 
+  test.table_xml,
+  LATERAL FLATTEN(GET(parse_xml(CLEANSEDRESPONSEXML), '$'), recursive => true) Elements
+where transunionid = '124692';
+
+
+SELECT 
+  GET(Elements.value, '@')::string nodeType, count(*) 
+FROM 
+  test.table_xml,
+  LATERAL FLATTEN(GET(parse_xml(CLEANSEDRESPONSEXML), '$')) Elements
+where transunionid = '124692'
+group by nodeType;
+
+
+SELECT 
+  GET(Elements.value, '@')::string nodeType, count(*) 
+FROM 
+  test.table_xml,
+  LATERAL FLATTEN(GET(parse_xml(CLEANSEDRESPONSEXML), '$'), recursive => true) Elements
+where transunionid = '124692'
+group by nodeType;
+
+
+SELECT 
+  GET(Elements.value, '@')::string nodeType
+  , GET(Elements.value, '$')::string nodeType
+FROM 
+  test.table_xml,
+  LATERAL FLATTEN(GET(parse_xml(CLEANSEDRESPONSEXML), '$'), recursive => true) Elements
+where transunionid = '124692';
+
+SELECT 
+   GET(Elements.value, '@')::string nodeType
+  ,GET(Elements.value, '$')::string nodeType_value
+  ,typeof(Elements.value) as "Type"
+FROM 
+  test.table_xml,
+  LATERAL FLATTEN(GET(parse_xml(CLEANSEDRESPONSEXML), '$'), recursive => true) Elements
+where transunionid = '124692'
+and NodeType IS NOT NULL and NodeType_value IS NOT NULL;
+-- and "Type" not in ('OBJECT','ARRAY', 'VARIANT', 'XML');
+
+
+-- exploding and parsing 
+select 
+-- GET( parse_xml(CLEANSEDRESPONSEXML), '$' ), all xml data 
+GET( parse_xml(CLEANSEDRESPONSEXML), '@' ),
+GET( parse_xml(CLEANSEDRESPONSEXML), '@xmlns:xsi' ),
+GET( XMLGET( parse_xml(CLEANSEDRESPONSEXML), 'version'), '$')::String as version,
+GET( XMLGET( parse_xml(CLEANSEDRESPONSEXML), 'document'), '$')::String as document,
+GET( XMLGET( parse_xml(CLEANSEDRESPONSEXML), 'transactionControl'), '$')::String as transactionControl,
+GET( XMLGET( parse_xml(CLEANSEDRESPONSEXML), 'product'), '$')::String as product
+from test.table_xml
+where transunionid = '124692';
+
+
+-- exploding and parsing nested data ex: product
+select 
+-- GET( parse_xml(CLEANSEDRESPONSEXML), '$' ), all xml data 
+GET( parse_xml(t.CLEANSEDRESPONSEXML), '@' ),
+GET( parse_xml(t.CLEANSEDRESPONSEXML), '@xmlns:xsi' ),
+GET( XMLGET( parse_xml(t.CLEANSEDRESPONSEXML), 'version'), '$')::String as version,
+GET( XMLGET( parse_xml(t.CLEANSEDRESPONSEXML), 'document'), '$')::String as document,
+GET( XMLGET( parse_xml(t.CLEANSEDRESPONSEXML), 'transactionControl'), '$')::String as transactionControl,
+GET( XMLGET( parse_xml(t.CLEANSEDRESPONSEXML), 'product'), '$')::String as product,
+GET( XMLGET( p.value, 'code'), '$')::String as p_code,
+GET( XMLGET( p.value, 'subject'), '$')::String as p_subject,
+GET( XMLGET( ps.value, 'number'), '$')::String as ps_number,
+GET( XMLGET( ps.value, 'subjectRecord'), '$')::String as ps_subjectRecord,
+ps.*
+from test.table_xml as t
+, lateral flatten (parse_xml(t.CLEANSEDRESPONSEXML):"$" ) as p
+, lateral flatten (GET( XMLGET( p.value, 'subject'), '$') ) as ps
+where transunionid = '124692'
+and GET(p.value, '@') = 'product';
+
+-- just explode at high level for one row 
+select
+    f.*,
+    t.CLEANSEDRESPONSEXML
+from test.table_xml as t
+, lateral flatten ( input => parse_xml(t.CLEANSEDRESPONSEXML)) as f
+where transunionid = '124692';
+
+select
+    f.*,
+    t.CLEANSEDRESPONSEXML
+from test.table_xml as t
+, lateral flatten ( input => parse_xml(t.CLEANSEDRESPONSEXML):"$") as f
+where transunionid = '124692';
+
+
+
+select
+    GET(parse_xml(t.CLEANSEDRESPONSEXML), '')
+from test.table_xml as t
+, lateral flatten ( input => parse_xml(t.CLEANSEDRESPONSEXML):"$") as f
+where transunionid = '124692';
+
+
+
+
+select
+     XMLGET(f.value, 'userRefNumber'):"$"::string  as userRefNumber,
+     XMLGET(f.value, 'version'):"$"::string  as version,
+     XMLGET(f.value, 'document'):"$"::string  as document,
+     XMLGET(f.value, 'code'):"$"::string  as code
+from test.table_xml as t
+, lateral flatten ( input => parse_xml(t.CLEANSEDRESPONSEXML):"$") as f
+where transunionid = '124692';
 
 
 

@@ -1,0 +1,81 @@
+-- set context 
+use role public;
+use database TEST_XML_DATA;
+use schema test;
+
+select 
+f.*
+-- GET(f.value, '@')::string nodetype 
+-- ,GET(f.value, '$')::string nodetype_value 
+-- f2.*
+,XMLGET(f.value, 'creditBureau.transactionControl.userRefNumber',0 ):"$"::STRING AS title 
+-- ,GET(f2.value,'$') AS F2_value
+-- ,XMLGET( VALUE, 'transactionTimeStamp' ):"$"::STRING AS title, 
+-- ,typeof(GET(f.value, '$')) as "Type"
+-- ,GET(f2.value, '@')::string nodetype 
+-- ,GET(f3.value, '@')::string nodetype 
+-- ,GET(f3.value, '$')::string nodetype 
+-- ,XMLGET(f3.value,'industryCode'):"$"::string transactionControl
+-- ,f3.*
+from test.table_xml as t
+    , lateral FLATTEN(GET(parse_xml(t.CLEANSEDRESPONSEXML),'$')) f
+    -- , lateral FLATTEN(GET(f.value,'$')) f2
+    -- , lateral FLATTEN(GET(parse_xml(f.value),'$')) f2
+    -- , lateral FLATTEN(GET(parse_xml(f2.value),'$')) f3
+WHERE t.TRANSUNIONID = 124916;
+-- AND left(F2_VALUE, 1) NOT IN  ('[','<');
+--AND "Type" not in ('OBJECT','ARRAY', 'VARIANT', 'XML')  -- get the parsed data 
+--and NODETYPE IS NOT NULL;
+
+
+
+SELECT 
+ GET(f.value, '@')::string nodetype
+,GET(f.value, '$')::string nodetype_value
+-- ,f.value
+,f.PATH
+,RIGHT(f.PATH,3) 
+,f.*
+-- ,typeof(f.value) as "Type"
+-- ,typeof(f.value) as "Type"
+from test.table_xml as t
+    ,  lateral FLATTEN(to_array(parse_xml(t.CLEANSEDRESPONSEXML):"$"), recursive => true) f
+WHERE t.TRANSUNIONID = 124916
+--AND "Type" not in ('OBJECT','ARRAY', 'VARIANT', 'XML');
+AND left(nodetype_value, 1) NOT IN  ('[','<')
+AND NODETYPE IS NOT NULL
+and nodetype = 'algorithmID';
+--and "Type" not in ('OBJECT','ARRAY', 'VARIANT', 'XML');
+
+
+
+
+create or replace table test_xml_sunil (v variant)
+as
+select 
+parse_xml('<catalog issue="spring">
+    <book id="bk101">The Good Book</book>
+    <book id="bk102">The Good Book</book>
+</catalog>');
+
+
+
+select * from test_xml_sunil;
+
+
+SELECT
+    XMLGET(src.value, 'id' ):"@"::STRING AS title2,
+    src.*
+FROM test_xml_sunil
+,LATERAL FLATTEN( INPUT => v:"$" ) as src
+--LATERAL FLATTEN( INPUT => src.value) as c
+WHERE
+       GET( src.value, '@') = 'book';
+
+
+
+
+
+
+
+

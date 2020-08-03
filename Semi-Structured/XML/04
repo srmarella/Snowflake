@@ -1,0 +1,205 @@
+-- set context 
+use role public;
+use database TEST_XML_DATA;
+use schema test;
+
+set data = '<catalog issue="spring">
+    <book id="bk101">The Good Book</book>
+    <book id="bk102">The OK Book</book> 
+</catalog>';
+
+
+select $data;
+
+
+create or replace table test.data_sample ( v variant )
+as
+select parse_xml( '<catalog issue="spring">
+    <book id="bk101">The Good Book</book>
+    <book id="bk102">The OK Book</book> 
+</catalog>');
+
+
+select * from test.data_sample;
+
+
+select
+    v 
+    ,v:"$"
+    ,v:"@"
+    ,v:"@issue"
+    ,v:"$"."@id"
+    ,v:"$"[0]."@id"
+    
+    
+    ,v:"$"."@id"
+    ,v:"$"[0]."@id"
+from 
+test.data_sample;
+
+select get(v ) from test.data_sample;
+
+select xmlget(v, 0) from test.data_sample;
+
+-- The following query retrieves the first element contained within the root element of the XML document:
+select xmlget(v, 'book', 0) from test.data_sample;
+select xmlget(v, 'book', 1) from test.data_sample;
+select xmlget(v, 'book', 2) from test.data_sample;
+
+
+-- 
+select xmlget(v, 'book', 0):"$" from test.data_sample;
+select xmlget(v, 'book', 0):"@" from test.data_sample;
+select xmlget(v, 'book', 0):"@id" from test.data_sample;
+
+
+
+-----------------------------------------------------------------------------------------------
+
+
+create or replace table test.sample_xml (src variant )
+as
+select parse_xml('
+<catalog issue="spring" date="2015-04-15">
+    <book id="bk101">
+        <title>Some Great Book</title>
+        <genre>Great Books</genre>
+        <author>Jon Smith</author>
+        <publish_date>2001-12-28</publish_date>
+        <price>23.39</price>
+        <description>This is a great book!</description>
+    </book>
+    <cd id="cd101">
+        <title>Sad Music</title>
+        <genre>Sad</genre>
+        <artist>Emo Jones</artist>
+        <publish_date>2010-11-23</publish_date>
+        <price>15.25</price>
+        <description>This music is so sad!</description>
+    </cd>
+    <map id="map101">
+        <title>Good CD</title>
+        <location>North America</location>
+        <author>Joey Bagadonuts</author>
+        <publish_date>2013-02-02</publish_date>
+        <price>102.95</price>
+        <description>Trail map of North America</description>
+    </map>
+</catalog>
+');
+
+
+
+select * from test.data_sample;
+
+SELECT
+src:"@issue"::STRING AS issue, 
+TO_DATE( src:"@date"::STRING, 'YYYY-MM-DD' ) AS date, 
+XMLGET( VALUE, 'title' ):"$"::STRING AS title, 
+COALESCE( XMLGET( VALUE, 'genre' ):"$"::STRING, 
+          XMLGET( VALUE, 'location' ):"$"::STRING ) AS genre_or_location, 
+COALESCE( XMLGET( VALUE, 'author' ):"$"::STRING, 
+          XMLGET( VALUE, 'artist' ):"$"::STRING ) AS author_or_artist, 
+TO_DATE( XMLGET( VALUE, 'publish_date' ):"$"::String ) AS publish_date, 
+XMLGET( VALUE, 'price' ):"$"::FLOAT AS price, 
+XMLGET( VALUE, 'description' ):"$"::STRING AS desc
+FROM sample_xml,
+LATERAL FLATTEN( INPUT => SRC:"$" );
+
+
+
+
+create or replace table my_table as
+select parse_xml($1) as data 
+from values ('
+    <person id="1">
+        <firstname>James</firstname>
+        <lastname>Smith</lastname>
+        <middlename></middlename>
+        <dob_year>1980</dob_year>
+        <dob_month>1</dob_month>
+        <gender>M</gender>
+        <salary currency="Euro">10000</salary>
+        <addresses>
+            <address>
+                <street>123 ABC street</street>
+                <city>NewJersy</city>
+                <state>NJ</state>    
+            </address>
+            <address>
+                <street>456 apple street</street>
+                <city>newark</city>
+                <state>DE</state>    
+            </address>    
+        </addresses>    
+    </person>'),('
+    <person id="2">
+        <firstname>Michael</firstname>
+        <lastname></lastname>
+        <middlename>Rose</middlename>
+        <dob_year>1990</dob_year>
+        <dob_month>6</dob_month>
+        <gender>M</gender>
+        <salary currency="Dollor">10000</salary>
+        <addresses>
+            <address>
+                <street>4512 main st</street>
+                <city>new york</city>
+                <state>NY</state>    
+            </address>
+            <address>
+                <street>4367 orange st</street>
+                <city>sandiago</city>
+                <state>CA</state>    
+            </address>    
+        </addresses>            
+    </person>
+');
+
+
+select 
+  data:"$",
+  data:"@id"::number id,
+  data:"$"[0]."$"::text first_name,
+  data:"$"[1]."$"::text last_name
+from my_table; 
+
+
+select 
+  t.* 
+  ,lf.*
+from my_table as t 
+, lateral flatten ( input => t.DATA, recursive => true) as lf
+where lf.SEQ = 1;
+
+select 
+  data:"$"
+  ,data:"$"[0]
+  ,data:"$"[7]
+  ,data:"@id"
+from my_table; 
+
+
+SELECT 
+  GET(Elements.value, '@')::string nodeType, count(*) 
+FROM 
+  my_table,
+  LATERAL FLATTEN(GET(data, '$'), recursive => true) Elements
+group by nodeType;
+ 
+
+
+select 
+    XMLGET(Elements.value, 'firstname'):"$"::string  CustomerID,
+    elements.* 
+    
+from 
+my_table,
+LATERAL FLATTEN(GET(data, '$')) Elements
+WHERE  elements.SEQ = 1;
+
+
+
+
+
+
