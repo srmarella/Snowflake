@@ -1,0 +1,6 @@
+Snowflake JS library details
+	https://snowflakecommunity.force.com/s/article/jsudflibrary
+
+
+Learning JS:
+	https://www.youtube.com/watch?v=PkZNo7MFNFg

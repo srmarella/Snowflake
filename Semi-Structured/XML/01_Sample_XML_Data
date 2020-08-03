@@ -1,0 +1,151 @@
+-- Preping sample data from QA  
+SELECT TOP 10000 * FROM DDE.dbo.TransUnion ORDER BY 1 DESC;
+-- just the select took 53 minutes from ssms , exported csv file size 2,693,339 KB 
+
+
+
+use role sysadmin;
+
+-- create database and schema 
+CREATE OR REPLACE TRANSIENT DATABASE TEST_XML_DATA DATA_RETENTION_TIME_IN_DAYS = 1;
+
+use database TEST_XML_DATA;
+CREATE OR REPLACE TRANSIENT SCHEMA TEST DATA_RETENTION_TIME_IN_DAYS = 1;
+
+show databases like '%TEST_XML_DATA%';
+
+-- permissions
+GRANT CREATE SCHEMA, MODIFY, MONITOR, REFERENCE_USAGE, USAGE ON DATABASE "TEST_XML_DATA" TO ROLE "PUBLIC" WITH GRANT OPTION;
+
+GRANT ADD SEARCH OPTIMIZATION, CREATE EXTERNAL TABLE, CREATE FILE FORMAT, CREATE FUNCTION, CREATE MASKING POLICY, CREATE MATERIALIZED VIEW, CREATE PIPE, CREATE PROCEDURE, CREATE SEQUENCE, CREATE STAGE, CREATE STREAM, CREATE TABLE, CREATE TASK, CREATE TEMPORARY TABLE, CREATE VIEW, MODIFY, MONITOR, USAGE 
+ON SCHEMA "TEST_XML_DATA"."TEST" TO ROLE "SYSADMIN" WITH GRANT OPTION;
+
+GRANT ADD SEARCH OPTIMIZATION, CREATE EXTERNAL TABLE, CREATE FILE FORMAT, CREATE FUNCTION, CREATE MASKING POLICY, CREATE MATERIALIZED VIEW, CREATE PIPE, CREATE PROCEDURE, CREATE SEQUENCE, CREATE STAGE, CREATE STREAM, CREATE TABLE, CREATE TASK, CREATE TEMPORARY TABLE, CREATE VIEW, MODIFY, MONITOR, USAGE 
+ON SCHEMA "TEST_XML_DATA"."TEST" TO ROLE "PUBLIC" WITH GRANT OPTION;
+
+-- set context 
+use role public;
+use database TEST_XML_DATA;
+use schema test;
+
+-- test data creation 
+CREATE OR REPLACE TRANSIENT TABLE test.table_xml
+                   (
+                    TransUnionId	VARCHAR
+                    ,AccountId	VARCHAR
+                    ,MachineName VARCHAR
+                    ,RequestXml	VARCHAR
+                    ,ResponseXml	VARCHAR
+                    ,SourceReferenceId	VARCHAR
+                    ,StatusCode	VARCHAR
+                    ,StatusReason	VARCHAR
+                    ,CreatedBy	VARCHAR
+                    ,CreatedDate	VARCHAR
+                    ,BureauRequestTimestamp	 VARCHAR
+                    ,BureauResponseTimestamp	VARCHAR
+                    ,CleansedRequestXML	VARCHAR
+                    ,CleansedResponseXML	VARCHAR
+                    ,UpdatedDate    VARCHAR  
+                    )
+                    DATA_RETENTION_TIME_IN_DAYS = 1;
+                       
+show tables like '%table_xml%';
+select * from test.table_xml;
+
+-- file format 
+CREATE OR REPLACE FILE FORMAT test.Test_CSV_Format
+                       Type = 'CSV'
+                       FIELD_DELIMITER  = ','
+                       FIELD_OPTIONALLY_ENCLOSED_BY  = '"'
+                       skip_header = 1;
+                      
+SHOW FILE FORMATS like '%Test_CSV_Format%'                      ;
+
+// from snowsql
+// snowsql -a progleasing.east-us-2.azure -u Sri
+// use database TEST_XML_DATA;
+// use role ACCOUNTADMIN;
+// use WAREHOUSE LOAD_WH;
+// use schema test;
+
+// Sri#LOAD_WH@TEST_XML_DATA.TEST>PUT file:///C:\Users\srikanth.marella\Documents\GitHub\Snowflake\Semi-Structured\Data\Re
+//                                lational_XML_Data.csv @TEST_XML_DATA.test.%table_XML;
+// Relational_XML_Data.csv_c.gz(470.43MB): [##########] 95.23% (327.688s, 1.44MB/s)+-------------------------+----------------------------+-------------+-------------+--------------------+--------------------+----------+---------+
+// | source                  | target                     | source_size | target_size | source_compression | target_compression | status   | message |
+// |-------------------------+----------------------------+-------------+-------------+--------------------+--------------------+----------+---------|
+// | Relational_XML_Data.csv | Relational_XML_Data.csv.gz |  2757978366 |   493285704 | NONE               | GZIP               | UPLOADED |         |
+// +-------------------------+----------------------------+-------------+-------------+--------------------+--------------------+----------+---------+
+// 1 Row(s) produced. Time Elapsed: 390.065s
+
+// 
+// 
+// Sri#LOAD_WH@TEST_XML_DATA.TEST>list @TEST_XML_DATA.test.%table_XML;
+// +----------------------------+-----------+------+-------------------------------+
+// | name                       |      size | md5  | last_modified                 |
+// |----------------------------+-----------+------+-------------------------------|
+// | Relational_XML_Data.csv.gz | 493285712 | NULL | Wed, 22 Jul 2020 21:20:35 GMT |
+// +----------------------------+-----------+------+-------------------------------+
+// 1 Row(s) produced. Time Elapsed: 1.434s
+// 
+// 
+// Sri#LOAD_WH@TEST_JSON_DATA.TEST>select top 1  t.$1, t.$2, t.$3, t.$4, t.$5, t.$6 from '@%table_xml' (file_format => test.Test_CSV_Format) t;
+// 
+// 
+
+
+list @TEST_XML_DATA.test.%table_XML;
+select top 1  * from '@%table_xml' (file_format => test.Test_CSV_Format) t;
+
+select 
+top 1 
+   -- * 
+   -- t.$1 ,t.$2 ,t.$3 ,t.$4 ,t.$5 
+   -- ,t.$6 ,t.$7 ,t.$8 ,t.$9 ,t.$10 ,t.$11 ,t.$12
+  parse_xml(t.$13) ,parse_xml(t.$14) ,t.$15
+from '@%table_xml'
+(file_format => test.Test_CSV_Format) t;
+  
+
+COPY INTO test.table_xml from '@TEST_XML_DATA.test.%table_xml' file_format =(FORMAT_NAME = test.Test_CSV_Format)  force = true;
+
+-- took 1min 39s 470.4MB
+copy into test.table_xml
+(  
+  TransUnionId ,AccountId	,MachineName ,RequestXml ,ResponseXml ,SourceReferenceId ,StatusCode ,StatusReason	,CreatedBy	,CreatedDate	,BureauRequestTimestamp	 
+  ,BureauResponseTimestamp	,CleansedRequestXML	,CleansedResponseXML	,UpdatedDate  
+)
+from (
+  select
+  -- top 1
+  -- * 
+  t.$1, t.$2, t.$3, t.$4, t.$5, try_cast(t.$6 as INTEGER), t.$7, t.$8, t.$9, t.$10, t.$11, t.$12 , t.$13, t.$14, t.$15
+  from '@%table_xml' t
+)
+file_format = (FORMAT_NAME  = test.Test_CSV_Format)
+FORCE = TRUE ; 
+
+
+select top 100 * from test.table_xml;
+
+
+-- explode 
+select
+    t.TRANSUNIONID
+    ,f.*
+from test.table_xml as t
+,lateral flatten (parse_xml(t.CleansedResponseXML))  as f
+WHERE t.TRANSUNIONID = 124916;
+
+
+
+select
+    t.TRANSUNIONID
+    ,f.*
+    ,typeof(f.value) as "Type"
+from test.table_xml as t
+,lateral flatten (parse_xml(t.CleansedResponseXML), recursive => TRUE)  as f
+WHERE t.TRANSUNIONID = 124916
+AND "Type" not in ('OBJECT','ARRAY', 'VARIANT', 'XML');  -- get the parsed data 
+
+
+

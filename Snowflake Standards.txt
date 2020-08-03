@@ -1,0 +1,88 @@
+Tables:
+	* Staging tables:
+		• All staging tabels should be Transient.
+	
+	* Prod Tables:
+		• All production tables should be permanent.
+		• While creating tables give proper datatypes.
+		• Always run updates on staging tables before pushing data to prod tables.
+
+Database:
+	* Development:
+		• Should be transient
+	* Staging:
+		• Should be transient
+	* Prod:
+		• Should be permanent 
+	* Datamart:
+		• Should be permanent 
+		
+		
+Data Loading:
+	• While loading data to a table, sort by keys on which you want to query data in future ( Joins, Filter predicates )
+
+		
+Warehouse:
+	• While executing queries always use column names instead of using `*`. If you want to use `*` use limit clause along with it.
+	
+	
+Data retention & Time travel:
+	• Set retention period of stage tables to 0.
+	• For production tables set retention period to max.
+	• Set retention period to 0 for cloned database for analytics.
+
+Access Controls:
+	>  
+
+
+https://docs.snowflake.com/en/user-guide/snowsql-start.html
+Using a Proxy Server
+
+
+
+1. Use ansi SQL where ever possible 
+	data types
+	queries 
+	
+	
+2. All landing should be in one database for stages and file formats 
+
+3. 
+
+Monitors:
+force at account level not to create mor ethat x clusters or sizing ?
+
+
+Data loading:
+
+Copy command:
+	How to force the copy command with column names from csv file in stage 
+	
+	how to remove staged files in external and internal ?
+
+
+Understanding Snowflake Data Transfer Billing:
+	https://docs.snowflake.com/en/user-guide/billing-data-transfer.html
+	https://www.snowflake.com/wp-content/uploads/2017/07/CreditConsumptionTable.pdf
+	downloading to local computer from UI | Using ODBC or JDBC or Python connector to pull data to local ( csv) | runnig a cube onprem from data hosted on snowflake 	
+	
+	
+Authentication:
+	Federated authentication and SSO 	
+	
+Tri-Secret Secure.:
+
+Support for secure, direct proxy to your other virtual networks or on-premises data centers using AWS PrivateLink or Azure Private Link.	
+
+Data Replication & Failover
+
+https://docs.snowflake.com/en/user-guide/snowcd.html
+
+
+Questions:
+
+
+[{"type":"SNOWFLAKE_DEPLOYMENT","host":"progleasing.east-us-2.azure.snowflakecomputing.com","port":443},{"type":"STAGE","host":"gae9rksfcb1stg.blob.core.windows.net","port":443},{"type":"SNOWSQL_REPO","host":"sfc-repo.snowflakecomputing.com","port":443},{"type":"OUT_OF_BAND_TELEMETRY","host":"client-telemetry.snowflakecomputing.com","port":443},{"type":"OCSP_CACHE","host":"ocsp.snowflakecomputing.com","port":80},{"type":"OCSP_RESPONDER","host":"ocsp.digicert.com","port":80},{"type":"OCSP_RESPONDER","host":"ocsp.msocsp.com","port":80}]
+
+
+Mapping table for ansi 

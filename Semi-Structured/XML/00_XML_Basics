@@ -1,0 +1,92 @@
+-- https://community.snowflake.com/s/article/introduction-to-loading-and-parsing-xml-data-using-sql
+
+-- set context 
+use role public;
+use database TEST_XML_DATA;
+use schema test;
+use warehouse load_wh;
+
+-- create or replace table ctas_xml (src VARIANT) as 
+
+
+create or replace table DEPT_EMP_ADDR (
+     xmldata variant not null
+);
+
+
+-- Sri#LOAD_WH@TEST_XML_DATA.TEST>PUT file:///C:\Users\srikanth.marella\Documents\GitHub\Snowflake\Semi-Structured\Data\Dept.xml @~/xml
+                               ;
+-- Dept.xml_c.gz(0.00MB): [##########] 100.00% Done (0.111s, 0.01MB/s).
+-- +----------+-------------+-------------+-------------+--------------------+--------------------+----------+---------+
+-- | source   | target      | source_size | target_size | source_compression | target_compression | status   | message |
+-- |----------+-------------+-------------+-------------+--------------------+--------------------+----------+---------|
+-- | Dept.xml | Dept.xml.gz |       13064 |        1590 | NONE               | GZIP               | UPLOADED |         |
+-- +----------+-------------+-------------+-------------+--------------------+--------------------+----------+---------+
+-- 1 Row(s) produced. Time Elapsed: 4.573s
+
+list @~/xml;
+
+
+COPY INTO DEPT_EMP_ADDR
+FROM @~/xml
+FILE_FORMAT=(TYPE=XML) ON_ERROR='CONTINUE';
+
+
+select * from DEPT_EMP_ADDR;
+
+select * from DEPT_EMP_ADDR as t
+, lateral flatten( input => t.xmldata, recursive => true);
+
+  SELECT
+     GET( XMLGET( xmldata, 'dept_id'), '$')::INTEGER as deptID,
+     XMLGET( xmldata, 'dept_id' ):"$"::INTEGER AS DEPT_ID,
+     XMLGET( xmldata, 'dept_name' ):"$"::STRING AS DEPT_NAME
+  FROM DEPT_EMP_ADDR;
+  
+  
+SELECT
+     GET(xmldata, '@dept_id')::integer as dept_id,
+     GET(xmldata, '@dept_name')::string as dept_name
+FROM DEPT_EMP_ADDR;  
+
+
+//2. Query to parse out all the elements at the next level down (EMPLOYEE).
+select
+      *
+from
+    dept_emp_addr
+    ,  lateral FLATTEN(dept_emp_addr.xmldata:"$") emp
+WHERE SEQ = 1;    -- getting only 1 row information 
+
+select
+      emp.value , emp.*
+from
+    dept_emp_addr
+    ,  lateral FLATTEN(dept_emp_addr.xmldata:"$") emp
+WHERE SEQ = 1;    -- getting only 1 row information 
+
+
+select
+      *
+from
+    dept_emp_addr
+    ,  lateral FLATTEN(dept_emp_addr.xmldata:"$", recursive => true) emp
+WHERE SEQ = 1;    -- getting only 1 row information 
+
+//2. Query to parse out all the elements at the next level down (EMPLOYEE).
+select
+       XMLGET( xmldata, 'dept_id' ):"$"::string AS dept_id
+     , XMLGET( xmldata, 'dept_name' ):"$"::string AS dept_name
+     , XMLGET( emp.value, 'emp_id' ):"$"::integer as emp_id
+     , XMLGET( emp.value, 'emp_fname' ):"$"::string as emp_fname
+     , XMLGET( emp.value, 'emp_lname' ):"$"::string as emp_lname
+     , XMLGET( emp.value, 'emp_title' ):"$"::string as emp_title
+     , XMLGET( emp.value, 'emp_ssn' ):"$"::string as emp_ssn
+from
+    dept_emp_addr
+    ,  lateral FLATTEN(dept_emp_addr.xmldata:"$") emp
+  where GET( emp.value, '@') = 'employee'
+  order by dept_id, emp_id   ;
+
+
+

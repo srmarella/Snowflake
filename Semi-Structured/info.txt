@@ -1,0 +1,2 @@
+
+https://www.snowflake.com/blog/automating-snowflakes-semi-structured-json-data-handling/
