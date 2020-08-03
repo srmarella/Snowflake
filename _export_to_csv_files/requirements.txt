@@ -1,0 +1,12 @@
+autopep8==1.4.4
+importlib-metadata==1.5.0
+numpy==1.18.1
+pandas==1.0.2
+path==13.1.0
+pipdeptree==0.13.2
+pycodestyle==2.5.0
+pyodbc==4.0.28
+python-dateutil==2.8.1
+pytz==2019.3
+six==1.13.0
+zipp==2.2.0
