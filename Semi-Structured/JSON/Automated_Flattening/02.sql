@@ -36,7 +36,10 @@
       -- table size 
       -- rows 52.2k, size 60.5 MB 
 
-      -- select * from TEST_JSON_DATA.test.table_json_vw; took 
+      -- select * from TEST_JSON_DATA.test.table_json_vw; 
+         -- scaneed bytes 59.7 MB 
+         -- took 6 minutes & 14 s  to run view 
+         -- warehouse size x-small 
 
 -- load to table script in dev\01.sql
 
