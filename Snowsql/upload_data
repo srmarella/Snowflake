@@ -1,0 +1,116 @@
+snowsql -a <accountname> -u <username>
+
+use role ACCOUNTADMIN;
+use DATABASE TEST_JSON_DATA;
+use schema test;
+use WAREHOUSE load_wh;
+
+====================================================================================================================================================================================
+
+use role sysadmin;
+use warehouse load_wh;
+
+-- create database and schema 
+CREATE OR REPLACE TRANSIENT DATABASE TEST_JSON_DATA DATA_RETENTION_TIME_IN_DAYS = 1;
+
+use database TEST_JSON_DATA;
+CREATE OR REPLACE TRANSIENT SCHEMA TEST DATA_RETENTION_TIME_IN_DAYS = 1;
+
+show databases like '%TEST_JSON_DATA%';
+show schemas like '%TEST%';
+
+GRANT CREATE SCHEMA, MODIFY, MONITOR, REFERENCE_USAGE, USAGE ON DATABASE "TEST_JSON_DATA" TO ROLE "PUBLIC" WITH GRANT OPTION;
+-- GRANT CREATE SCHEMA, MODIFY, MONITOR, REFERENCE_USAGE, USAGE ON SCHEMA "TEST" TO ROLE "PUBLIC" WITH GRANT OPTION;
+
+use role public;
+use database TEST_JSON_DATA;
+use schema test;
+
+
+CREATE OR REPLACE TRANSIENT TABLE test.table_json 
+                      (ParseDataId VARCHAR
+                       ,DecisionResultId VARCHAR
+                       ,AccountId VARCHAR
+                       ,BureauId VARCHAR
+                       ,PrimaryKey VARCHAR
+                       ,ParsedData VARIANT
+                       ,CreatedDate VARCHAR(100)
+                       ,CreatedByName VARCHAR(100))
+                       DATA_RETENTION_TIME_IN_DAYS = 1;
+                       
+show tables like '%table_json%';
+select * from test.table_json;
+
+CREATE OR REPLACE FILE FORMAT test.Test_CSV_Format
+                       Type = 'CSV'
+                       FIELD_DELIMITER  = ','
+                       FIELD_OPTIONALLY_ENCLOSED_BY  = '"'
+                       skip_header = 1;
+                      
+SHOW FILE FORMATS like '%Test_CSV_Format%'  ;
+
+====================================================================================================================================================================================
+
+srikanthmarella#LOAD_WH@TEST_JSON_DATA.TEST>PUT file:///C:\Users\srikanth.marella\Documents\GitHub\Snowflake\Semi-Structured\parsedata_json\*.csv @%table_json;
+2_parsedata_json.csv_c.gz(0.68MB): [##########] 100.00% Done (0.678s, 1.00MB/s).
+3_parsedata_json.csv_c.gz(0.60MB): [##########] 100.00% Done (0.678s, 0.89MB/s).
+1_parsedata_json.csv_c.gz(0.56MB): [##########] 100.00% Done (0.684s, 0.82MB/s).
+0_parsedata_json.csv_c.gz(0.65MB): [##########] 100.00% Done (1.463s, 0.44MB/s).
+4_parsedata_json.csv_c.gz(0.63MB): [##########] 100.00% Done (0.599s, 1.06MB/s).
++----------------------+-------------------------+-------------+-------------+--------------------+--------------------+----------+---------+
+| source               | target                  | source_size | target_size | source_compression | target_compression | status   | message |
+|----------------------+-------------------------+-------------+-------------+--------------------+--------------------+----------+---------|
+| 0_parsedata_json.csv | 0_parsedata_json.csv.gz |    12042812 |      678073 | NONE               | GZIP               | UPLOADED |         |
+| 1_parsedata_json.csv | 1_parsedata_json.csv.gz |    12223666 |      589035 | NONE               | GZIP               | UPLOADED |         |
+| 2_parsedata_json.csv | 2_parsedata_json.csv.gz |    12980799 |      712187 | NONE               | GZIP               | UPLOADED |         |
+| 3_parsedata_json.csv | 3_parsedata_json.csv.gz |    12330813 |      632514 | NONE               | GZIP               | UPLOADED |         |
+| 4_parsedata_json.csv | 4_parsedata_json.csv.gz |    12083206 |      664867 | NONE               | GZIP               | UPLOADED |         |
++----------------------+-------------------------+-------------+-------------+--------------------+--------------------+----------+---------+
+5 Row(s) produced. Time Elapsed: 6.384s
+
+====================================================================================================================================================================================
+
+srikanthmarella#LOAD_WH@TEST_JSON_DATA.TEST>list @%table_json;
++-----------------------------+--------+----------------------------------+------------------------------+
+| name                        |   size | md5                              | last_modified                |
+|-----------------------------+--------+----------------------------------+------------------------------|
+| 0_parsedata_json.csv.gz     | 678080 | 4a6065b86420dae93dc23d7eaee2296d | Mon, 3 Aug 2020 23:36:00 GMT |
+| 1_parsedata_json.csv.gz     | 589040 | a9d76e9ab05c8fa2dfdce059f90ccf13 | Mon, 3 Aug 2020 23:36:00 GMT |
+| 2_parsedata_json.csv.gz     | 712192 | c96faaad92431e43560ed2c7095774b1 | Mon, 3 Aug 2020 23:36:00 GMT |
+| 3_parsedata_json.csv.gz     | 632528 | 800206a5cd9506853e05915c5e7fcf10 | Mon, 3 Aug 2020 23:36:00 GMT |
+| 4_parsedata_json.csv.gz     | 664880 | 5a075a0f6f49094607bca804a6f05988 | Mon, 3 Aug 2020 23:36:01 GMT |
+| Relational_Json_Data.csv.gz | 900448 | 4ff371445a6c8ae121f0402b92881c57 | Sat, 1 Aug 2020 20:51:36 GMT |
++-----------------------------+--------+----------------------------------+------------------------------+
+6 Row(s) produced. Time Elapsed: 0.237s
+
+====================================================================================================================================================================================
+
+list @%table_json;
+remove @%table_json pattern='.*.*.*';
+
+select top 1  t.$1, t.$2, t.$3, t.$4, t.$5, t.$6 from '@%table_json' (file_format => test.Test_CSV_Format) t;
+
+====================================================================================================================================================================================
+
+srikanthmarella#LOAD_WH@TEST_JSON_DATA.TEST>COPY INTO test.table_json from '@TEST_JSON_DATA.test.%table_json' file_format =(FORMAT_NAME = test.Test_CSV_Format)  force = true;
++-------------------------+--------+-------------+-------------+-------------+-------------+-------------+------------------+-----------------------+-------------------------+
+| file                    | status | rows_parsed | rows_loaded | error_limit | errors_seen | first_error | first_error_line | first_error_character | first_error_column_name |
+|-------------------------+--------+-------------+-------------+-------------+-------------+-------------+------------------+-----------------------+-------------------------|
+| 3_parsedata_json.csv.gz | LOADED |          10 |          10 |           1 |           0 | NULL        |             NULL |                  NULL | NULL                    |
+| 1_parsedata_json.csv.gz | LOADED |          10 |          10 |           1 |           0 | NULL        |             NULL |                  NULL | NULL                    |
+| 2_parsedata_json.csv.gz | LOADED |          10 |          10 |           1 |           0 | NULL        |             NULL |                  NULL | NULL                    |
+| 4_parsedata_json.csv.gz | LOADED |          10 |          10 |           1 |           0 | NULL        |             NULL |                  NULL | NULL                    |
+| 0_parsedata_json.csv.gz | LOADED |          10 |          10 |           1 |           0 | NULL        |             NULL |                  NULL | NULL                    |
++-------------------------+--------+-------------+-------------+-------------+-------------+-------------+------------------+-----------------------+-------------------------+
+5 Row(s) produced. Time Elapsed: 2.135s
+
+====================================================================================================================================================================================
+
+select top 100 * from test.table_json;
+
+
+
+====================================================================================================================================================================================
+
+PUT file:///C:\Users\srikanth.marella\Desktop\AdventureWorks.xml @xml_test/AdventureWorks/ ;
+

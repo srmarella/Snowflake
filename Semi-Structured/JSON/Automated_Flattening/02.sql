@@ -1,3 +1,43 @@
+-- Notes:
+-- 1. JAVA SP will not return error messages, cannot tell if the something ran fine 
+-- 2. There is limit on query size when running automated create view  query 
+-- 3. Tested data size 
+      -- on prem 5 files 653 MB 
+      -- srikanthmarella#LOAD_WH@TEST_JSON_DATA.TEST>PUT file:///C:\Users\srikanth.marella\Documents\GitHub\Snowflake\Semi-Structured\parsedata_json\*.csv @%table_json;
+      -- 0_parsedata_json.csv_c.gz(5.93MB): [##########] 100.00% Done (1.524s, 3.89MB/s).
+      -- 1_parsedata_json.csv_c.gz(6.12MB): [##########] 100.00% Done (1.276s, 4.80MB/s).
+      -- 2_parsedata_json.csv_c.gz(5.92MB): [##########] 100.00% Done (2.176s, 2.72MB/s).
+      -- 3_parsedata_json.csv_c.gz(5.85MB): [##########] 100.00% Done (2.219s, 2.64MB/s).
+      -- 4_parsedata_json.csv_c.gz(14.59MB): [##########] 100.00% Done (8.574s, 1.70MB/s).
+      -- +----------------------+-------------------------+-------------+-------------+--------------------+--------------------+----------+---------+
+      -- | source               | target                  | source_size | target_size | source_compression | target_compression | status   | message |
+      -- |----------------------+-------------------------+-------------+-------------+--------------------+--------------------+----------+---------|
+      -- | 0_parsedata_json.csv | 0_parsedata_json.csv.gz |   123091847 |     6217225 | NONE               | GZIP               | UPLOADED |         |
+      -- | 1_parsedata_json.csv | 1_parsedata_json.csv.gz |   123162333 |     6416180 | NONE               | GZIP               | UPLOADED |         |
+      -- | 2_parsedata_json.csv | 2_parsedata_json.csv.gz |   121262578 |     6204227 | NONE               | GZIP               | UPLOADED |         |
+      -- | 3_parsedata_json.csv | 3_parsedata_json.csv.gz |   124058780 |     6133551 | NONE               | GZIP               | UPLOADED |         |
+      -- | 4_parsedata_json.csv | 4_parsedata_json.csv.gz |   193501039 |    15299375 | NONE               | GZIP               | UPLOADED |         |
+      -- +----------------------+-------------------------+-------------+-------------+--------------------+--------------------+----------+---------+
+      -- 5 Row(s) produced. Time Elapsed: 34.271s
+
+      -- stage size
+      -- srikanthmarella#LOAD_WH@TEST_JSON_DATA.TEST>list @%table_json;
+      -- +-------------------------+----------+----------------------------------+------------------------------+
+      -- | name                    |     size | md5                              | last_modified                |
+      -- |-------------------------+----------+----------------------------------+------------------------------|
+      -- | 0_parsedata_json.csv.gz |  6217232 | 97f5d404b80bfb0697c2db3b82c68fb5 | Tue, 4 Aug 2020 01:07:19 GMT |
+      -- | 1_parsedata_json.csv.gz |  6416192 | 10f3ecfab28a9b56b2457ba981d1c4df | Tue, 4 Aug 2020 01:07:23 GMT |
+      -- | 2_parsedata_json.csv.gz |  6204240 | b228870b5d75b9abc05c519653f52e14 | Tue, 4 Aug 2020 01:07:28 GMT |
+      -- | 3_parsedata_json.csv.gz |  6133552 | 9d1a55a4cb18ca91d34b5dd7f14e351a | Tue, 4 Aug 2020 01:07:33 GMT |
+      -- | 4_parsedata_json.csv.gz | 15299376 | 04eeca40696446b3c719a5f72b62a0a8 | Tue, 4 Aug 2020 01:07:47 GMT |
+      -- +-------------------------+----------+----------------------------------+------------------------------+
+      -- 5 Row(s) produced. Time Elapsed: 0.230s
+
+      -- table size 
+      -- rows 52.2k, size 60.5 MB 
+
+      -- select * from TEST_JSON_DATA.test.table_json_vw; took 
+
 -- load to table script in dev\01.sql
 
 use role accountadmin;

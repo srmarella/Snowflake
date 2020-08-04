@@ -1,3 +1,4 @@
 {
-    "python.pythonPath": "C:\\Python\\Python38\\python.exe"
+  "python.pythonPath": "_export_to_csv_files\\venv\\Scripts\\python.exe",
+  "python.languageServer": "Pylance"
 }
