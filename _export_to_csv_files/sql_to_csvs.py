@@ -50,24 +50,48 @@ j: int = 4
 
 # file_dir = os.path.dirname(os.path.abspath(__file__)
 path: str = r'C:\Users\srikanth.marella\Documents\GitHub\Snowflake\Semi-Structured'
-outname = 'parsedata_json.csv'
-outdir = 'parsedata_json'
+# outname = 'parsedata_json.csv'
+# outdir = 'parsedata_json'
+
+outname = 'transunion.csv'
+outdir = 'xml_transunion'
+
 path_dir: str = os.path.join(path, outdir)
-chunk_size = 10_000
+chunk_size = 100
 offset = 0
 
 # run sql query and write to multiple files
 while i <= j:
+    # sql = "SELECT \
+    #     ParseDataId \
+    #     ,DecisionResultId \
+    #     ,AccountId \
+    #     ,BureauId \
+    #     ,PrimaryKey \
+    #     ,ParsedData \
+    #     ,CreatedDate \
+    #     ,CreatedByName \
+    # FROM dbo.ParseData order by parsedataid OFFSET %d ROWS FETCH NEXT %d ROWS ONLY;" % (offset, chunk_size)
+
     sql = "SELECT \
-        ParseDataId \
-        ,DecisionResultId \
-        ,AccountId \
-        ,BureauId \
-        ,PrimaryKey \
-        ,ParsedData \
-        ,CreatedDate \
-        ,CreatedByName \
-    FROM dbo.ParseData order by parsedataid OFFSET %d ROWS FETCH NEXT %d ROWS ONLY;" % (offset, chunk_size)
+            TransUnionId \
+            ,AccountId \
+            ,MachineName \
+            ,RequestXml \
+            ,ResponseXml \
+            ,SourceReferenceId \
+            ,StatusCode \
+            ,StatusReason \
+            ,CreatedBy \
+            ,CreatedDate \
+            ,BureauRequestTimestamp \
+            ,BureauResponseTimestamp \
+            ,CleansedRequestXML \
+            ,CleansedResponseXML \
+            ,UpdatedDate \
+            FROM \
+            dbo.TransUnion \
+            ORDER BY TransUnionId DESC OFFSET %d ROWS FETCH NEXT %d ROWS ONLY;" % (offset, chunk_size)
 
     dfs = pd.read_sql(sql, cnxn)
     offset += chunk_size

@@ -62,20 +62,29 @@ CREATE OR REPLACE FILE FORMAT test.Test_CSV_Format
 SHOW FILE FORMATS like '%Test_CSV_Format%'                      ;
 
 // from snowsql
-// snowsql -a progleasing.east-us-2.azure -u Sri
+// snowsql -a accountname -u Sri
 // use database TEST_XML_DATA;
 // use role ACCOUNTADMIN;
 // use WAREHOUSE LOAD_WH;
 // use schema test;
 
-// Sri#LOAD_WH@TEST_XML_DATA.TEST>PUT file:///C:\Users\srikanth.marella\Documents\GitHub\Snowflake\Semi-Structured\Data\Re
-//                                lational_XML_Data.csv @TEST_XML_DATA.test.%table_XML;
-// Relational_XML_Data.csv_c.gz(470.43MB): [##########] 95.23% (327.688s, 1.44MB/s)+-------------------------+----------------------------+-------------+-------------+--------------------+--------------------+----------+---------+
-// | source                  | target                     | source_size | target_size | source_compression | target_compression | status   | message |
-// |-------------------------+----------------------------+-------------+-------------+--------------------+--------------------+----------+---------|
-// | Relational_XML_Data.csv | Relational_XML_Data.csv.gz |  2757978366 |   493285704 | NONE               | GZIP               | UPLOADED |         |
-// +-------------------------+----------------------------+-------------+-------------+--------------------+--------------------+----------+---------+
-// 1 Row(s) produced. Time Elapsed: 390.065s
+// srikanthmarella#LOAD_WH@TEST_XML_DATA.TEST>PUT file:///C:\Users\srikanth.marella\Documents\GitHub\Snowflake\Semi-Struct
+//                                            ured\xml_transunion\*.csv @TEST_XML_DATA.test.%table_XML;
+// 1_transunion.csv_c.gz(0.87MB): [##########] 100.00% Done (4.571s, 0.19MB/s).
+// 0_transunion.csv_c.gz(0.79MB): [##########] 100.00% Done (4.896s, 0.16MB/s).
+// 2_transunion.csv_c.gz(0.87MB): [##########] 100.00% Done (5.391s, 0.16MB/s).
+// 3_transunion.csv_c.gz(0.86MB): [##########] 100.00% Done (6.511s, 0.13MB/s).
+// 4_transunion.csv_c.gz(0.84MB): [##########] 100.00% Done (4.358s, 0.19MB/s).
+// +------------------+---------------------+-------------+-------------+--------------------+--------------------+----------+---------+
+// | source           | target              | source_size | target_size | source_compression | target_compression | status   | message |
+// |------------------+---------------------+-------------+-------------+--------------------+--------------------+----------+---------|
+// | 0_transunion.csv | 0_transunion.csv.gz |     2302562 |      830166 | NONE               | GZIP               | UPLOADED |         |
+// | 1_transunion.csv | 1_transunion.csv.gz |     2522725 |      915844 | NONE               | GZIP               | UPLOADED |         |
+// | 2_transunion.csv | 2_transunion.csv.gz |     2501549 |      914467 | NONE               | GZIP               | UPLOADED |         |
+// | 3_transunion.csv | 3_transunion.csv.gz |     2465257 |      896634 | NONE               | GZIP               | UPLOADED |         |
+// | 4_transunion.csv | 4_transunion.csv.gz |     2419148 |      880288 | NONE               | GZIP               | UPLOADED |         |
+// +------------------+---------------------+-------------+-------------+--------------------+--------------------+----------+---------+
+// 5 Row(s) produced. Time Elapsed: 15.697s
 
 // 
 // 
@@ -314,7 +323,8 @@ and NodeType IS NOT NULL and NodeType_value IS NOT NULL;
 
 -- exploding and parsing 
 select 
--- GET( parse_xml(CLEANSEDRESPONSEXML), '$' ), all xml data 
+ parse_xml(CLEANSEDRESPONSEXML) as xml,
+-- GET( parse_xml(CLEANSEDRESPONSEXML), '$' ), -- all xml data 
 GET( parse_xml(CLEANSEDRESPONSEXML), '@' ),
 GET( parse_xml(CLEANSEDRESPONSEXML), '@xmlns:xsi' ),
 GET( XMLGET( parse_xml(CLEANSEDRESPONSEXML), 'version'), '$')::String as version,
@@ -323,6 +333,31 @@ GET( XMLGET( parse_xml(CLEANSEDRESPONSEXML), 'transactionControl'), '$')::String
 GET( XMLGET( parse_xml(CLEANSEDRESPONSEXML), 'product'), '$')::String as product
 from test.table_xml
 where transunionid = '124692';
+
+
+select distinct
+parse_xml(CLEANSEDRESPONSEXML) as xml,
+-- GET( parse_xml(CLEANSEDRESPONSEXML), '$' ), -- all xml data 
+-- GET( parse_xml(CLEANSEDRESPONSEXML), '@' ),
+-- GET( parse_xml(CLEANSEDRESPONSEXML), '@xmlns:xsi' ),
+-- GET( XMLGET( parse_xml(CLEANSEDRESPONSEXML), 'version'), '$')::String as version,
+-- GET( XMLGET( parse_xml(CLEANSEDRESPONSEXML), 'document'), '$')::String as document,
+GET( XMLGET( parse_xml(CLEANSEDRESPONSEXML), 'transactionControl'), '$') as transactionControl,
+-- GET( XMLGET( parse_xml(CLEANSEDRESPONSEXML), 'product'), '$')::String as product,
+xml_doc.Index,
+xml_doc.value,
+
+GET( parse_xml(xml_doc.value),'@')::String as subscriber_key,
+GET( parse_xml(xml_doc.value),'$')::String as subscriber_value,
+GET( XMLGET( parse_xml(xml_doc.value), 'industryCode'), '$')::String as subscriber_industryCode,
+GET( XMLGET( parse_xml(xml_doc.value), 'memberCode'), '$')::String as subscriber_memberCode,
+GET( XMLGET( parse_xml(xml_doc.value), 'inquirySubscriberPrefixCode'), '$')::String as subscriber_inquirySubscriberPrefixCode
+
+from test.table_xml,
+LATERAL FLATTEN(transactionControl) xml_doc
+
+where transunionid = '124692';
+
 
 
 -- exploding and parsing nested data ex: product

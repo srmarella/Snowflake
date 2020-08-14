@@ -1,0 +1,30 @@
+
+enable notifications for the users in preferences, only can be done under account admin 
+    https://progleasing_qas.west-us-2.azure.snowflakecomputing.com/console#/preferences
+
+Customize Schedule:
+    Time Zone: Local, how does it know what time zone are we in ? session level paraemter ?
+
+-- This includes cloud services layer as well 
+CREATE RESOURCE MONITOR "QA_ACCOUNT_WEEKLY_RESOURCE_MONITOR" WITH CREDIT_QUOTA = 38, frequency = 'WEEKLY'
+, start_timestamp = 'IMMEDIATELY'
+, end_timestamp = null 
+ TRIGGERS 
+ ON 90 PERCENT DO SUSPEND 
+ ON 99 PERCENT DO SUSPEND_IMMEDIATE 
+ ON 50 PERCENT DO NOTIFY 
+ ON 25 PERCENT DO NOTIFY 
+ ON 75 PERCENT DO NOTIFY;
+ALTER ACCOUNT SET RESOURCE_MONITOR = "QA_ACCOUNT_WEEKLY_RESOURCE_MONITOR";
+
+-- WH level 
+CREATE RESOURCE MONITOR "QA_WH_WEEKLY_RESOURCE_MONITOR" WITH CREDIT_QUOTA = 30, frequency = 'WEEKLY', start_timestamp = 'IMMEDIATELY', end_timestamp = null 
+ TRIGGERS 
+ ON 90 PERCENT DO SUSPEND 
+ ON 99 PERCENT DO SUSPEND_IMMEDIATE 
+ ON 75 PERCENT DO NOTIFY 
+ ON 50 PERCENT DO NOTIFY 
+ ON 25 PERCENT DO NOTIFY;
+ALTER WAREHOUSE "LOAD_WH" SET RESOURCE_MONITOR = "QA_WH_WEEKLY_RESOURCE_MONITOR";
+
+===================================================================================================================================================================

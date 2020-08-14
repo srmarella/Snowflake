@@ -1,0 +1,54 @@
+use warehouse load_wh;
+use role accountadmin;
+
+
+alter account set saml_identity_provider = '{
+  "certificate": "",
+  "ssoUrl": "https://<>/app/snowflake/exk4wdfo9qiQlvxR6357/sso/saml",
+  "type": "OKTA"
+  }';
+  
+  
+  
+alter account set sso_login_page = true;  
+
+
+
+CREATE USER "SrikanthMarella" PASSWORD = '************' LOGIN_NAME = 'SrikanthMarella' 
+DISPLAY_NAME = 'SrikanthMarella' FIRST_NAME = 'Srikanth' LAST_NAME = 'Marella' EMAIL = 'srikanth.marella@>?' 
+DEFAULT_ROLE = "PUBLIC" DEFAULT_WAREHOUSE = 'LOAD_WH' MUST_CHANGE_PASSWORD = FALSE;
+GRANT ROLE "PUBLIC" TO USER "SrikanthMarella";
+
+
+-- https://docs.snowflake.com/en/user-guide/scim-okta.html
+use role accountadmin;
+create or replace role okta_provisioner;
+grant create user on account to role okta_provisioner;
+grant create role on account to role okta_provisioner;
+grant role okta_provisioner to role accountadmin;
+create or replace security integration okta_provisioning
+    type=scim
+    scim_client='okta'
+    run_as_role='OKTA_PROVISIONER';
+    
+select system$generate_scim_access_token('OKTA_PROVISIONING');
+
+
+
+
+use schema information_schema;
+
+select * from table(rest_event_history('scim'));
+select *
+    from table(rest_event_history(
+        'scim',
+        dateadd('minutes',-5,current_timestamp()),
+        current_timestamp(),
+        200))
+    order by event_timestamp;
+
+
+Issues:
+======
+1. Okata caanot handle _ in the name, create cname and point okta to cname.
+
