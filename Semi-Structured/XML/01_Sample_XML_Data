@@ -62,7 +62,7 @@ CREATE OR REPLACE FILE FORMAT test.Test_CSV_Format
 SHOW FILE FORMATS like '%Test_CSV_Format%'                      ;
 
 // from snowsql
-// snowsql -a accountname -u Sri
+// snowsql -a account_name -u Sri
 // use database TEST_XML_DATA;
 // use role ACCOUNTADMIN;
 // use WAREHOUSE LOAD_WH;
@@ -145,6 +145,7 @@ from test.table_xml as t
 ,lateral flatten (parse_xml(t.CleansedResponseXML))  as f
 WHERE t.TRANSUNIONID = 124916;
 
+-- working example
 select
     t.TRANSUNIONID
     -- ,f.*
@@ -187,10 +188,6 @@ SELECT
 FROM 
   test.table_xml as t,
   LATERAL FLATTEN(GET(t.CleansedResponseXML, '$')) Elements;
-
-
-
-
 
 select 
 *
