@@ -1,0 +1,18 @@
+alter account set QUOTED_IDENTIFIERS_IGNORE_CASE=TRUE;
+select "column1" from "Table_Name" WHERE column1 = 'TEST'
+select "column1" from Table_Name WHERE column1 = 'TEST'
+select "column1" as column1 from "Table_Name" WHERE column1 = 'TEST'
+alter account set QUOTED_IDENTIFIERS_IGNORE_CASE=FALSE;
+select * from "Table_Name" WHERE column1 = 'TEST'
+
+
+When we set this "alter account set QUOTED_IDENTIFIERS_IGNORE_CASE=TRUE;", object names will treated as case insensitive. But the when query runs the results in the column will be always in ALL CAPS
+
+
+QUOTED_IDENTIFIERS_IGNORE_CASE can be set at the account level.  You need to be ACCOUNTADMIN role and do:
+alter account set QUOTED_IDENTIFIERS_IGNORE_CASE=TRUE;
+
+
+create table table_name (column1 varchar collate 'en-ci');
+insert into table_name (column1) values ('test')
+select * from table_name WHERE column1 = 'TEST'
